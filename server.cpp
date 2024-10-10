@@ -53,7 +53,6 @@ int main(int argc, char **argv) {
 		for (auto it = connection_to_player.begin(); it != connection_to_player.end(); it++) {
 			Connection *c = it->first;
 			c->send(msg);
-			std::cout << c->send_buffer.data();
 		}
 	};
 
@@ -119,7 +118,6 @@ int main(int argc, char **argv) {
 						std::string dir2(&dir, 1);
 						msg.append(dir2);
 						yap_to_all_players(connection_to_player, msg);
-						std::cout << c->send_buffer.data() << std::endl;
 						c->recv_buffer.clear();
 					}
 

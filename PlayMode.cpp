@@ -162,8 +162,6 @@ void PlayMode::update(float elapsed) {
 			throw std::runtime_error("Lost connection to server!");
 		} else { assert(event == Connection::OnRecv);
 			// std::cout << "[" << c->socket << "] recv'd data. Current buffer:\n" << hex_dump(c->recv_buffer); std::cout.flush(); //DEBUG
-			
-			std::cout << c->recv_buffer.data() << std::endl;
 
 			// a move was made
 			if (c->recv_buffer[0] == (uint8_t) 'P') {

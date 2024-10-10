@@ -1,20 +1,18 @@
-# (TODO: your game's title)
+# Phototropic
 
-Author: (TODO: your name)
+Author: Sasha Mishkin
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: A vine grows simultaneously in two colors, and with conflicting desires, each wishing to follow a different light. Two players take turns making the vine grow toward the goal (flower icon) of their assigned color. 
 
-Networking: (TODO: How does your game implement client/server multiplayer? What messages are transmitted? Where in the code?)
+Networking: The game is turn-based and requires exactly two players. The server waits for both players to join before allowing players to move (and randomizing the flowers' positions). Then, the server keeps track of whose turn it is, and each player's move is treated as a command (with a letter representing direction as payload) which the server then broadcasts to all players to update game state (vine positions).
 
 Screen Shot:
 
 ![Screen Shot](screenshot.png)
 
-How To Play:
+How To Play: Create exactly two clients (I have not tested what happens with more than two clients; it may be very buggy). Purple player always moves first. Use W, A, S, D, Q, and E keys to move as indicated on the screen. Try to reach the flower of your color and prevent your opponent from reaching the flower of *their* color. If both players reach the flowers of their color simultaneously (e.g. if they are at a corner), both players win. Currently there is no way to resolve a stalemate situation, though.
 
-(TODO: describe the controls and (if needed) goals/strategy.)
-
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+Sources: None
 
 This game was built with [NEST](NEST.md).
 
