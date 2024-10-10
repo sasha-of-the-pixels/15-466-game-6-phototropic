@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cassert>
 #include <unordered_map>
+#include <string>
 
 #ifdef _WIN32
 extern "C" { uint32_t GetACP(); }
@@ -48,6 +49,14 @@ int main(int argc, char **argv) {
 	//keep track of game state:
 	Game game;
 
+	std::function<void(std::unordered_map<Connection*, Player*>, std::string)> yap_to_all_players = [] (std::unordered_map<Connection*, Player*> connection_to_player, std::string msg) {
+		for (auto it = connection_to_player.begin(); it != connection_to_player.end(); it++) {
+			Connection *c = it->first;
+			c->send(msg);
+			std::cout << c->send_buffer.data();
+		}
+	};
+
 	while (true) {
 		static auto next_tick = std::chrono::steady_clock::now() + std::chrono::duration< double >(Game::Tick);
 		//process incoming data from clients until a tick has elapsed:
@@ -73,6 +82,22 @@ int main(int argc, char **argv) {
 
 					//create some player info for them:
 					connection_to_player.emplace(c, game.spawn_player());
+					c->send('H'); c->send((uint8_t)(connection_to_player.size()-1));
+
+					if (connection_to_player.size() == 2) {
+						uint8_t x_purple = rand() % 5 + 40;
+						uint8_t y_purple = rand() % 5 + 40;
+						uint8_t front_purple = rand() % 2 + 40;
+						uint8_t x_green = rand() % 5 + 40;
+						uint8_t y_green = rand() % 5 + 40;
+						uint8_t front_green = rand() % 2 + 40;
+						std::array<char, 6> flower_pos = {
+							(char)x_purple, (char)y_purple, (char)front_purple, 
+							(char)x_green, (char)y_green, (char)front_green};
+						std::string G = "G";
+						std::string flower_pos_str = G.append(std::string(flower_pos.data(), 6));
+						yap_to_all_players(connection_to_player, flower_pos_str);
+					}
 
 				} else if (evt == Connection::OnClose) {
 					//client disconnected:
@@ -87,6 +112,36 @@ int main(int argc, char **argv) {
 					auto f = connection_to_player.find(c);
 					assert(f != connection_to_player.end());
 					Player &player = *f->second;
+
+					if (c->recv_buffer[0] == (uint8_t)'M') {
+						std::string msg = "P";
+						char dir = (char) c->recv_buffer[1];
+						std::string dir2(&dir, 1);
+						msg.append(dir2);
+						yap_to_all_players(connection_to_player, msg);
+						std::cout << c->send_buffer.data() << std::endl;
+						c->recv_buffer.clear();
+					}
+
+					else if (c->recv_buffer[0] == (uint8_t) 'R') {
+						// yap_to_all_players(connection_to_player, "R");
+						// flower time
+						if (connection_to_player.size() == 2) {
+							uint8_t x_purple = rand() % 5 + 40;
+							uint8_t y_purple = rand() % 5 + 40;
+							uint8_t front_purple = rand() % 2 + 40;
+							uint8_t x_green = rand() % 5 + 40;
+							uint8_t y_green = rand() % 5 + 40;
+							uint8_t front_green = rand() % 2 + 40;
+							std::array<char, 6> flower_pos = {
+								(char)x_purple, (char)y_purple, (char)front_purple, 
+								(char)x_green, (char)y_green, (char)front_green};
+							std::string R = "R";
+							std::string flower_pos_str = R.append(std::string(flower_pos.data(), 6));
+							yap_to_all_players(connection_to_player, flower_pos_str);
+						}
+						c->recv_buffer.clear();
+					}
 
 					//handle messages from client:
 					try {
@@ -109,9 +164,9 @@ int main(int argc, char **argv) {
 		game.update(Game::Tick);
 
 		//send updated game state to all clients
-		for (auto &[c, player] : connection_to_player) {
-			game.send_state_message(c, player);
-		}
+		// for (auto &[c, player] : connection_to_player) {
+		// 	game.send_state_message(c, player);
+		// }
 
 	}
 
