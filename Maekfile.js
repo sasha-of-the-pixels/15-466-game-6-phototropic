@@ -68,7 +68,8 @@ if (maek.OS === "windows") {
 	);
 	maek.options.LINKLibs.push(
 		//linker flags for nest libraries:
-		`-L${NEST_LIBS}/SDL2/lib`, `-lSDL2`, `-lm`, `-ldl`, `-lasound`, `-lpthread`, `-lX11`, `-lXext`, `-lpthread`, `-lrt`, `-lGL`, //the output of sdl-config --static-libs
+		`-L${NEST_LIBS}/SDL2/lib`, `-lSDL2`,`-lm`, `-ldl`, `-lasound`, `-lpthread`, `-lX11`, `-lXext`, `-lpthread`, `-lrt`, `-lGL`, '-lgbm', '-ldrm', //the output of sdl-config --static-libs
+'-lm', '-lasound', '-lm', '-ldl', '-lpthread', '-lsamplerate', '-lX11', '-lXext', '-lXcursor', '-lXi', '-lXfixes', '-lXrandr', '-lXss', 
 		`-L${NEST_LIBS}/libpng/lib`, `-lpng`,
 		`-L${NEST_LIBS}/zlib/lib`, `-lz`,
 		`-L${NEST_LIBS}/opusfile/lib`, `-lopusfile`,
@@ -161,15 +162,15 @@ const common_names = [
 ];
 
 const show_meshes_names = [
-	maek.CPP('show-meshes.cpp'),
-	maek.CPP('ShowMeshesProgram.cpp'),
-	maek.CPP('ShowMeshesMode.cpp')
+	//maek.CPP('show-meshes.cpp'),
+	//maek.CPP('ShowMeshesProgram.cpp'),
+	//maek.CPP('ShowMeshesMode.cpp')
 ];
 
 const show_scene_names = [
-	maek.CPP('show-scene.cpp'),
-	maek.CPP('ShowSceneProgram.cpp'),
-	maek.CPP('ShowSceneMode.cpp')
+	//maek.CPP('show-scene.cpp'),
+	//maek.CPP('ShowSceneProgram.cpp'),
+	//maek.CPP('ShowSceneMode.cpp')
 ];
 
 //the '[exeFile =] LINK(objFiles, exeFileBase, [, options])' links an array of objects into an executable:
@@ -178,11 +179,11 @@ const show_scene_names = [
 //returns exeFile: exeFileBase + a platform-dependant suffix (e.g., '.exe' on windows)
 const client_exe = maek.LINK([...client_names, ...common_names], 'dist/client');
 const server_exe = maek.LINK([...server_names, ...common_names], 'dist/server');
-const show_meshes_exe = maek.LINK([...show_meshes_names, ...common_names], 'scenes/show-meshes');
-const show_scene_exe = maek.LINK([...show_scene_names, ...common_names], 'scenes/show-scene');
+//const show_meshes_exe = maek.LINK([...show_meshes_names, ...common_names], 'scenes/show-meshes');
+//const show_scene_exe = maek.LINK([...show_scene_names, ...common_names], 'scenes/show-scene');
 
 //set the default target to the game (and copy the readme files):
-maek.TARGETS = [client_exe, server_exe, show_meshes_exe, show_scene_exe, ...copies];
+maek.TARGETS = [client_exe, server_exe,...copies];// show_meshes_exe, show_scene_exe, ...copies];
 
 //Note that tasks that produce ':abstract targets' are never cached.
 // This is similar to how .PHONY targets behave in make.

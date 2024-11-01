@@ -89,22 +89,33 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		else if (evt.key.keysym.sym == SDLK_a) {
 			controls.left.downs += 1;
 			controls.left.pressed = true;
-			if (my_turn && curr_vine_pos.x > 0 && !occupied_cells[curr_vine_pos.x-1][curr_vine_pos.y][curr_vine_pos.z]) client.connection.send("ML");
+			if (my_turn && curr_vine_pos.x > 0 && !occupied_cells[curr_vine_pos.x-1][curr_vine_pos.y][curr_vine_pos.z]) {
+				client.connection.send('M');
+				client.connection.send('L');
+			}
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_d) {
 			controls.right.downs += 1;
 			controls.right.pressed = true;
-			if (my_turn && curr_vine_pos.x < 4 && !occupied_cells[curr_vine_pos.x+1][curr_vine_pos.y][curr_vine_pos.z]) client.connection.send("MR");
+			if (my_turn && curr_vine_pos.x < 4 && !occupied_cells[curr_vine_pos.x+1][curr_vine_pos.y][curr_vine_pos.z]) {
+				client.connection.send('M');
+				client.connection.send('R');
+			}			
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_w) {
 			controls.up.downs += 1;
 			controls.up.pressed = true;
-			if (my_turn && curr_vine_pos.z < 4 && !occupied_cells[curr_vine_pos.x][curr_vine_pos.y][curr_vine_pos.z+1]) client.connection.send("MU");
-			return true;
+			if (my_turn && curr_vine_pos.z < 4 && !occupied_cells[curr_vine_pos.x][curr_vine_pos.y][curr_vine_pos.z+1]) {
+				client.connection.send('M');
+				client.connection.send('U');
+			}			return true;
 		} else if (evt.key.keysym.sym == SDLK_s) {
 			controls.down.downs += 1;
 			controls.down.pressed = true;
-			if (my_turn && curr_vine_pos.z > 0 && !occupied_cells[curr_vine_pos.x][curr_vine_pos.y][curr_vine_pos.z-1]) client.connection.send("MD");
+			if (my_turn && curr_vine_pos.z > 0 && !occupied_cells[curr_vine_pos.x][curr_vine_pos.y][curr_vine_pos.z-1]) {
+				client.connection.send('M');
+				client.connection.send('D');
+			}			
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_e) {
 			controls.jump.downs += 1;
@@ -161,168 +172,199 @@ void PlayMode::update(float elapsed) {
 			std::cout << "[" << c->socket << "] closed (!)" << std::endl;
 			throw std::runtime_error("Lost connection to server!");
 		} else { assert(event == Connection::OnRecv);
-			// std::cout << "[" << c->socket << "] recv'd data. Current buffer:\n" << hex_dump(c->recv_buffer); std::cout.flush(); //DEBUG
+			
+			std::vector<uint8_t> flower_pos = {};
+			
+			std::cout << "receiving:" << c->recv_buffer.data() << std::endl;
+			printf("recv buf size: %lu\n", c->recv_buffer.size());
+			for (uint32_t i = 0; i < c->recv_buffer.size(); i++) {
 
-			// a move was made
-			if (c->recv_buffer[0] == (uint8_t) 'P') {
-				vine_count++;
-				/// =====================================
-				/// || @warning stuuuuuupid code ahead ||
-				/// =====================================
-				if ((my_turn && am_purple) || (!my_turn && am_green)) {
-					// purple player turn
-					printf("purple player turn\n");
-					char pos = c->recv_buffer[1];
-					if (pos == 'L') {
-						curr_vine_pos.x -= 1;
-						purple_vines[vine_count]->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(0., 1., 0.));
-						purple_vines[vine_count]->position = pos_offset + rot_left_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'R') {
-						curr_vine_pos.x += 1;
-						purple_vines[vine_count]->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(0., 1., 0.));
-						purple_vines[vine_count]->position = pos_offset + rot_right_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'U') {
-						curr_vine_pos.z += 1;
-						purple_vines[vine_count]->position = pos_offset + go_up_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'D') {
-						curr_vine_pos.z -= 1;
-						purple_vines[vine_count]->position = pos_offset + go_down_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'F') {
-						curr_vine_pos.y += 1;
-						purple_vines[vine_count]->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(1., 0., 0.));
-						purple_vines[vine_count]->position = pos_offset + rot_forward_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'B') {
-						curr_vine_pos.y -= 1;
-						purple_vines[vine_count]->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1., 0., 0.));
-						purple_vines[vine_count]->position = pos_offset + rot_back_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					}
-				} else {
-					// green player turn
-					char pos = c->recv_buffer[1];
-					if (pos == 'L') {
-						curr_vine_pos.x -= 1;
-						green_vines[vine_count]->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(0., 1., 0.));
-						green_vines[vine_count]->position = pos_offset + rot_left_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'R') {
-						curr_vine_pos.x += 1;
-						green_vines[vine_count]->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(0., 1., 0.));
-						green_vines[vine_count]->position = pos_offset + rot_right_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'U') {
-						curr_vine_pos.z += 1;
-						green_vines[vine_count]->position = pos_offset + go_up_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'D') {
-						curr_vine_pos.z -= 1;
-						green_vines[vine_count]->position = pos_offset + go_down_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'F') {
-						curr_vine_pos.y += 1;
-						green_vines[vine_count]->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(1., 0., 0.));
-						green_vines[vine_count]->position = pos_offset + rot_forward_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					} else if (pos == 'B') {
-						curr_vine_pos.y -= 1;
-						green_vines[vine_count]->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1., 0., 0.));
-						green_vines[vine_count]->position = pos_offset + rot_back_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
-					}
-				}
-				occupied_cells[curr_vine_pos.x][curr_vine_pos.y][curr_vine_pos.z] = true;
-				if (am_purple || am_green) my_turn = !my_turn;
-
-				// check win condition
-				if (curr_vine_pos == glm::u8vec3(front_purple ? 4 : x_purple, !front_purple ? 4 : x_purple, y_purple)) {
-					// purple flower :o
-					i_won += am_purple;
-					phase = 2;
-				} if (curr_vine_pos == glm::u8vec3(!front_green ? 0 : x_green, front_green ? 0 : x_green, y_green)) {
-					i_won += am_green;
-					phase = 2;
-				}
-			} 
-
-			// player initialization ("Handshake")
-			if (c->recv_buffer[0] == (uint8_t) 'H') {
-				if (c->recv_buffer[1] == 0) {
-					am_purple = 1;
-					my_turn = 1;
-				}
-				else if (c->recv_buffer[1] == 1) am_green = 1;
-			}
-			// begin game (allow player 1 to move) ("Go")
-			std::vector<uint8_t> flower_pos;
-			if (c->recv_buffer[0] == (uint8_t) 'G'){
-				phase = 1;
-				flower_pos = {c->recv_buffer[1], c->recv_buffer[2], c->recv_buffer[3], c->recv_buffer[4], c->recv_buffer[5], c->recv_buffer[6] };
-			} else if ( (c->recv_buffer[0] == 'H' && c->recv_buffer[2] == 'G')) {
-				phase = 1;
-				flower_pos = {c->recv_buffer[3], c->recv_buffer[4], c->recv_buffer[5], c->recv_buffer[6], c->recv_buffer[7], c->recv_buffer[8] };
-			}
-			// actually position flower
-			if (flower_pos.size() >= 6) {
-				x_purple = flower_pos[0] - 40;
-				y_purple = flower_pos[1] - 40;
-				front_purple = flower_pos[2] - 40;
-				x_green = flower_pos[3] - 40;
-				y_green = flower_pos[4] - 40;
-				front_green = flower_pos[5] - 40;
-				purple_flower->position = glm::vec3(front_purple ? 2.2 : x_purple - 2., !front_purple ? 2.2 : x_purple - 2., y_purple+0.5);
-				green_flower->position = glm::vec3(!front_green ? -2.3 : x_green - 2., front_green ? -2.3 : x_green - 2., y_green+0.5);
-				purple_flower->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(!front_purple, front_purple, 0.));
-				green_flower->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(front_green, !front_green, 0.));
-			}
-
-			else if (c->recv_buffer[0] == 'R') {
-				// restart game state
-				i_won = 0;
-				my_turn = am_purple;
-				phase = 1;
-
-				for (uint8_t i = 0; i < 5; i++) {
-					for (uint8_t j = 0; j < 5; j++) {
-						for (uint8_t k = 0; k < 5; k++) {
-							occupied_cells[i][j][k] = false;
+				//printf("i: %u\n", i);
+				// a move was made
+				if (c->recv_buffer[0] == (uint8_t) 'P') {
+					if (i == 0) continue;
+					
+					char pos = c->recv_buffer[1];		
+					vine_count++;
+					/// =====================================
+					/// || @warning stuuuuuupid code ahead ||
+					/// =====================================
+					if ((my_turn && am_purple) || (!my_turn && am_green)) {
+						// purple player turn
+						printf("purple player turn\n");
+						if (pos == 'L') {
+							curr_vine_pos.x -= 1;
+							purple_vines[vine_count]->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(0., 1., 0.));
+							purple_vines[vine_count]->position = pos_offset + rot_left_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'R') {
+							curr_vine_pos.x += 1;
+							purple_vines[vine_count]->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(0., 1., 0.));
+							purple_vines[vine_count]->position = pos_offset + rot_right_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'U') {
+							curr_vine_pos.z += 1;
+							purple_vines[vine_count]->position = pos_offset + go_up_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'D') {
+							curr_vine_pos.z -= 1;
+							purple_vines[vine_count]->position = pos_offset + go_down_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'F') {
+							curr_vine_pos.y += 1;
+							purple_vines[vine_count]->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(1., 0., 0.));
+							purple_vines[vine_count]->position = pos_offset + rot_forward_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'B') {
+							curr_vine_pos.y -= 1;
+							purple_vines[vine_count]->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1., 0., 0.));
+							purple_vines[vine_count]->position = pos_offset + rot_back_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
 						}
+					} else {
+						// green player turn
+						if (pos == 'L') {
+							curr_vine_pos.x -= 1;
+							green_vines[vine_count]->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(0., 1., 0.));
+							green_vines[vine_count]->position = pos_offset + rot_left_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'R') {
+							curr_vine_pos.x += 1;
+							green_vines[vine_count]->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(0., 1., 0.));
+							green_vines[vine_count]->position = pos_offset + rot_right_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'U') {
+							curr_vine_pos.z += 1;
+							green_vines[vine_count]->position = pos_offset + go_up_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'D') {
+							curr_vine_pos.z -= 1;
+							green_vines[vine_count]->position = pos_offset + go_down_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'F') {
+							curr_vine_pos.y += 1;
+							green_vines[vine_count]->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(1., 0., 0.));
+							green_vines[vine_count]->position = pos_offset + rot_forward_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						} else if (pos == 'B') {
+							curr_vine_pos.y -= 1;
+							green_vines[vine_count]->rotation = glm::angleAxis(glm::radians(-90.f), glm::vec3(1., 0., 0.));
+							green_vines[vine_count]->position = pos_offset + rot_back_offset + glm::vec3(curr_vine_pos.x, curr_vine_pos.y, curr_vine_pos.z);
+						}
+					}
+					occupied_cells[curr_vine_pos.x][curr_vine_pos.y][curr_vine_pos.z] = true;
+					if (am_purple || am_green) my_turn = !my_turn;
+	
+					// check win condition
+					if (curr_vine_pos == glm::u8vec3(front_purple ? 4 : x_purple, !front_purple ? 4 : x_purple, y_purple)) {
+						// purple flower :o
+						i_won += am_purple;
+						phase = 2;
+					} if (curr_vine_pos == glm::u8vec3(!front_green ? 0 : x_green, front_green ? 0 : x_green, y_green)) {
+						i_won += am_green;
+						phase = 2;
+					}
+					
+					// erase first 2 thingies in recv buffer
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					i = 0;
+				} 
+	
+				// player initialization ("Handshake")
+				else if (c->recv_buffer[0] == (uint8_t) 'H') {
+					if (i == 0) continue;
+
+					if (c->recv_buffer[1] == 0x30) {
+						am_purple = 1;
+						my_turn = 1;
+					}
+					else if (c->recv_buffer[1] == 0x31) am_green = 1;
+					else continue;
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					i = (uint)-1;
+				}
+				// begin game (allow player 1 to move) ("Go")
+				else if (c->recv_buffer[0] == (uint8_t) 'G'){
+					if (i < 6) continue;
+
+					phase = 1;
+					flower_pos = {c->recv_buffer[1], c->recv_buffer[2], c->recv_buffer[3], c->recv_buffer[4], c->recv_buffer[5], c->recv_buffer[6] };
+
+					// actually position flower
+					if (flower_pos.size() >= 6) {
+						x_purple = flower_pos[0] - 40;
+						y_purple = flower_pos[1] - 40;
+						front_purple = flower_pos[2] - 40;
+						x_green = flower_pos[3] - 40;
+						y_green = flower_pos[4] - 40;
+						front_green = flower_pos[5] - 40;
+						purple_flower->position = glm::vec3(front_purple ? 2.2 : x_purple - 2., !front_purple ? 2.2 : x_purple - 2., y_purple+0.5);
+						green_flower->position = glm::vec3(!front_green ? -2.3 : x_green - 2., front_green ? -2.3 : x_green - 2., y_green+0.5);
+						purple_flower->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(!front_purple, front_purple, 0.));
+						green_flower->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(front_green, !front_green, 0.));
+					}
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					c->recv_buffer.erase(c->recv_buffer.begin());
+					i=0;
+				}
+				else if (c->recv_buffer[0] == 'R') {
+					if (i < 6) continue;
+
+					// restart game state
+					i_won = 0;
+					my_turn = am_purple;
+					phase = 1;
+
+					for (uint8_t i = 0; i < 5; i++) {
+						for (uint8_t j = 0; j < 5; j++) {
+							for (uint8_t k = 0; k < 5; k++) {
+								occupied_cells[i][j][k] = false;
+							}
+						};
 					};
-				};
-				occupied_cells[2][2][0] = true;
-				curr_vine_pos = glm::u8vec3(2., 2., 0.);
-
-				// reset vine positions & rotations
-				for (uint16_t i = 0; i <= vine_count; i++) {
-					purple_vines[i]->position = glm::vec3(0., 0., 0.25);
-					green_vines[i]->position = glm::vec3(0., 0., -1.);
-					purple_vines[i]->rotation = glm::angleAxis(0.f, glm::vec3(1., 0., 0.));
-					green_vines[i]->rotation = glm::angleAxis(0.f, glm::vec3(1., 0., 0.));
+					occupied_cells[2][2][0] = true;
+					curr_vine_pos = glm::u8vec3(2., 2., 0.);
+	
+					// reset vine positions & rotations
+					for (uint16_t i = 0; i <= vine_count; i++) {
+						purple_vines[i]->position = glm::vec3(0., 0., 0.25);
+						green_vines[i]->position = glm::vec3(0., 0., -1.);
+						purple_vines[i]->rotation = glm::angleAxis(0.f, glm::vec3(1., 0., 0.));
+						green_vines[i]->rotation = glm::angleAxis(0.f, glm::vec3(1., 0., 0.));
+					}
+					vine_count = 0;
+	
+					// re-randomize flower positions
+					flower_pos = {c->recv_buffer[1], c->recv_buffer[2], c->recv_buffer[3], c->recv_buffer[4], c->recv_buffer[5], c->recv_buffer[6] };
+					// actually position flower
+					if (flower_pos.size() >= 6) {
+						x_purple = flower_pos[0] - 40;
+						y_purple = flower_pos[1] - 40;
+						front_purple = flower_pos[2] - 40;
+						x_green = flower_pos[3] - 40;
+						y_green = flower_pos[4] - 40;
+						front_green = flower_pos[5] - 40;
+						purple_flower->position = glm::vec3(front_purple ? 2.2 : x_purple - 2., !front_purple ? 2.2 : x_purple - 2., y_purple+0.5);
+						green_flower->position = glm::vec3(!front_green ? -2.3 : x_green - 2., front_green ? -2.3 : x_green - 2., y_green+0.5);
+						purple_flower->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(!front_purple, front_purple, 0.));
+						green_flower->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(front_green, !front_green, 0.));
+					}
 				}
-				vine_count = 0;
-
-				// re-randomize flower positions
-				flower_pos = {c->recv_buffer[1], c->recv_buffer[2], c->recv_buffer[3], c->recv_buffer[4], c->recv_buffer[5], c->recv_buffer[6] };
-				// actually position flower
-				if (flower_pos.size() >= 6) {
-					x_purple = flower_pos[0] - 40;
-					y_purple = flower_pos[1] - 40;
-					front_purple = flower_pos[2] - 40;
-					x_green = flower_pos[3] - 40;
-					y_green = flower_pos[4] - 40;
-					front_green = flower_pos[5] - 40;
-					purple_flower->position = glm::vec3(front_purple ? 2.2 : x_purple - 2., !front_purple ? 2.2 : x_purple - 2., y_purple+0.5);
-					green_flower->position = glm::vec3(!front_green ? -2.3 : x_green - 2., front_green ? -2.3 : x_green - 2., y_green+0.5);
-					purple_flower->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(!front_purple, front_purple, 0.));
-					green_flower->rotation = glm::angleAxis(glm::radians(90.f), glm::vec3(front_green, !front_green, 0.));
+				else {
+					printf("i: %u\n", i);
+					c->recv_buffer.erase(c->recv_buffer.begin());
 				}
-			}
 
-			bool handled_message;
-			try {
-				do {
-					handled_message = false;
-					if (game.recv_state_message(c)) handled_message = true;
-				} while (handled_message);
-			} catch (std::exception const &e) {
-				std::cerr << "[" << c->socket << "] malformed message from server: " << e.what() << std::endl;
-				//quit the game:
-				throw e;
+				bool handled_message;
+				try {
+					do {
+						handled_message = false;
+						if (game.recv_state_message(c)) handled_message = true;
+					} while (handled_message);
+				} catch (std::exception const &e) {
+					std::cerr << "[" << c->socket << "] malformed message from server: " << e.what() << std::endl;
+					//quit the game:
+					throw e;
+				}
+	
+				// c->recv_buffer.clear();
 			}
-
-			c->recv_buffer.clear();
 		}
 	}, 0.0);
 }
